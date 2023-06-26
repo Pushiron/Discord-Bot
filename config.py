@@ -1,1 +1,1 @@
-TOKEN = 'TOKEN'
+TOKEN = '123'
