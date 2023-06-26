@@ -1,5 +1,6 @@
 import asyncio
 import sqlite3
+from config import TOKEN
 import discord
 from discord.ext import commands
 
@@ -43,19 +44,26 @@ async def create_master_room(ctx, *, args):
         return
 
     # Создание мастер комнаты в указанной категории
-    master_channel = await category.create_voice_channel(name=f'➕ {master_room_name}') 
+    master_channel = await category.create_voice_channel(name=f'➕ {master_room_name}')
 
     # Сохранение значений в базу данных
     cursor.execute("INSERT INTO master_rooms (masterroom_id, default_name, u_ammount) VALUES (?, ?, ?)", (master_channel.id, default_name, u_ammount))
     connection.commit()
 
     await ctx.send(f"Мастер комната '{master_room_name}' успешно создана.")
+    ch_log_id = 1122619319709335592
+    ch_log = bot.get_channel(ch_log_id)
+    await ch_log.send(f"🐸Создана Мастер комната '{master_room_name}' для категории '{category}'")
 
 
 # Ивенты
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user.name}')
+
+    ch_log_id = 1122619319709335592
+    ch_log = bot.get_channel(ch_log_id)
+    await ch_log.send(f"🤖Бот '{bot.user.name}' запущен и готов к работе")
 
     # Создание таблицы master_rooms, если она не существует
     cursor.execute('''CREATE TABLE IF NOT EXISTS master_rooms (
@@ -95,7 +103,9 @@ async def on_voice_state_update(member, before, after):
                         await member.move_to(new_channel)
                         cursor.execute("INSERT INTO temp_channels (temp_id) VALUES (?)", (new_channel.id,))
                         connection.commit()
-
+                    ch_log_id = 1122619319709335592
+                    ch_log = bot.get_channel(ch_log_id)
+                    await ch_log.send(f"👍Мастер комната создала временную комнату '{new_channel}'")
 
     if before.channel is not None and before.channel.id in [temp[0] for temp in cursor.execute(
             "SELECT temp_id FROM temp_channels").fetchall()]:
@@ -103,13 +113,16 @@ async def on_voice_state_update(member, before, after):
         if temp_channel is not None and len(temp_channel.members) == 0:
             await asyncio.sleep(1)  # Задержка на 1 секунду
             await temp_channel.delete()
+            ch_log_id = 1122619319709335592
+            ch_log = bot.get_channel(ch_log_id)
+            await ch_log.send(f"☠️Мастер комната удалила временную комнату '{temp_channel}'")
             cursor.execute("DELETE FROM temp_channels WHERE temp_id=?", (temp_channel.id,))
             connection.commit()
 
 
-@bot.event
-async def on_disconnect():
-    connection.close()
+#@bot.event
+#async def on_disconnect():
+#    connection.close()
 
 
-bot.run('MTEyMTM3OTQwMzkyMjkzNTg3OA.G4WG-k.Fj9u7puH4NgeTDaDvEUaKcvVSt1_SBDG6w9Bew')
+bot.run(TOKEN)
